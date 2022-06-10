@@ -35,6 +35,9 @@ federal government standard on May 26, 2002, after approval by the U.S. Secretar
 AES is available in many different encryption packages, and is the first (and only) publicly accessible cipher approved by the U.S. 
 National Security Agency (NSA) for top secret information when used in an NSA approved cryptographic module.
 
+# Server / Client / App - Role
 Client : cipher key를 암호화, server에 전송
+
 Server : cipher key를 복호화 후, MAC을 통해 무결성 검증
+
 Application : KMS에서 cipher를 가져와 AES 암/복호화 수행, KMS에서 cipher를 가져와 MAC 수행
