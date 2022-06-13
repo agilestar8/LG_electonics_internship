@@ -47,19 +47,19 @@ int main(int argc, char *args[])
 	aes_decrypt(p_temp, p_decrypt, encrypt_size);   // for padding
 
 	
-	printf("received key :");
-	for (i=0;i<sizeof(buf);i++){
+	printf("\n[SERVER] received key :");
+	for (i=0;i<KEYSIZE;i++){
 		printf("0x%02x ", buf[i]);
 			
 	}
 	printf("\n\n");
 
 
-	printf("decrypted : ");
-	for ( i = 0; i < sizeof(buf); i++){
+	printf("[SERVER] decrypted : ");
+	for ( i = 0; i < KEYSIZE; i++){
 		printf( "0x%02x ", p_decrypt[i]);
 	}
-	 printf("\n");	 
+	 printf("\n\n");	 
 
 
 	return 0;

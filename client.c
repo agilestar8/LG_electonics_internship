@@ -5,11 +5,11 @@
 #include <string.h>
 #include <time.h>
 #include <stdint.h>
-
 #include "aes_cbc.h"
 //#include<openssl/aes.h>
 //#include<openssl/des.h>
 
+#define KEYSIZE 60
 typedef uint8_t U8; 
 
 int main(int argc, char **argv)
@@ -17,7 +17,7 @@ int main(int argc, char **argv)
 
 	// key setting
 
-	
+/*	
 	uint8_t key[3][20] = {{0x01,0x0F,0x10,0x10,0x10, //01 0F AAAA...
 						  0x10,0x10,0x10,0x10,0x10,
 						  0x10,0x10,0x10,0x10,0x10,	
@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 						  0x12,0x12,0x12,0x12,0x12,
 						  0x12,0x12,0x12,0x12,0x12,	
 						  0x12,0x12,0x12,0x12,0x12}};
-	
+*/	
 
 
 	// Encrypt
@@ -40,27 +40,28 @@ int main(int argc, char **argv)
 	U8 p_temp[1024];
 	int encrypt_size;
 
-	aes_encrypt(key[0], p_encrypt, sizeof(key[0])); // (plaintext, encrypted, size)
-	encrypt_size = (sizeof(key[0]) + AES_BLOCK_SIZE) /16 * 16;
+	aes_encrypt(cipher_key, p_encrypt, sizeof(cipher_key)); // (plaintext, encrypted, size)
+	encrypt_size = (sizeof(cipher_key) + AES_BLOCK_SIZE) /16 * 16;
   
 	// Decrypt
 	memcpy(p_temp, p_encrypt, encrypt_size);        // for padding
 	aes_decrypt(p_temp, p_decrypt, encrypt_size);   // decrypt
 
 	int i;
-	printf("client key(hex) : ");
-	for (i=0; i<sizeof(key[0]); i++){
-		printf("0x%02x ", key[0][i]);
+	printf("[CLIENT] client key(hex) : ");
+	for (i=0; i<sizeof(cipher_key); i++){
+		printf("0x%02x ", cipher_key[i]);
 	}
+	printf("\n");
 
-	printf("\nclient encrypt : ");
-	for (i=0; i<sizeof(key[0]); i++){
+	printf("\n[CLIENT] encrypt : ");
+	for (i=0; i<sizeof(cipher_key); i++){
 		printf("0x%02x ", p_encrypt[i]);
 	}
 	
-	printf("\n");
-	printf("client decrypt : ");
-	for (i=0; i<sizeof(key[0]); i++){
+	printf("\n\n");
+	printf("[CLIENT] decrypt : ");
+	for (i=0; i<KEYSIZE; i++){
 		printf("0x%02x ", p_decrypt[i]);
 	}
 
