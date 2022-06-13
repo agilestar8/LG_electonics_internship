@@ -8,9 +8,7 @@
 #include "aes_cbc.h"
 //#include<openssl/aes.h>
 //#include<openssl/des.h>
-
-typedef uint8_t U8; 
-
+ 
 int main(int argc, char **argv)
 {
 

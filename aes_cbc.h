@@ -9,6 +9,7 @@
 #include <openssl/des.h>
 #include <stdint.h>
 #define KEYSIZE 60 
+#define KEY_BIT 128
 //typedef unsigned char U8;
 //static const U8 cipher_key[] = {0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5};
 
@@ -33,9 +34,6 @@ static const uint8_t cipher_key[] =
 						 0xCC,0xCC,0xCC,0xCC,
 						 0xCC,0xCC,0xCC,0xCC};
 
-
-
-#define KEY_BIT 128
 
 int aes_decrypt( U8 *p_in, U8 *p_out, int size)
 {
