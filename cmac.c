@@ -12,14 +12,14 @@ void printBytes(unsigned char *buf, size_t len) {
 int main(int argc, char *argv[])
 {
 
-  // Mac Key: 2b7e1516 28aed2a6 abf71588 09cf4f3c
+  // Mac Key: 2b 7e 15 16 28 ae d2 a6 ab f7 15 88 09 cf 4f 3c
   unsigned char key[] = { 0x2b,0x7e,0x15,0x16, 
                           0x28,0xae,0xd2,0xa6,
                           0xab,0xf7,0x15,0x88,
                           0x09,0xcf,0x4f,0x3c};
 	
 
-  // M: 6bc1bee2 2e409f96 e93d7e11 7393172a Mlen: 128
+  // M: 6b c1 be e2 2e 40 9f 96 e9 3d 7e 11 73 93 17 2a   Mlen: 128
   unsigned char message[] = { 0x6b,0xc1,0xbe,0xe2, 
                               0x2e,0x40,0x9f,0x96, 
                               0xe9,0x3d,0x7e,0x11, 
