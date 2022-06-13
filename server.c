@@ -37,17 +37,24 @@ int main(int argc, char *args[])
 	// Key Decryptio
 	
 	//U8 p_encrypt[1024];         // encrypted text
-	U8 p_decrypt[128];         // decrypted text
-	U8 p_temp[128];            // to fill 128 bit
+	U8 p_decrypt[1024];         // decrypted text
+	U8 p_temp[1024];            // to fill 128 bit
 	int encrypt_size;
+	int i;
 
 	encrypt_size = (sizeof(buf) + AES_BLOCK_SIZE) / 16 * 16;
 	memcpy(p_temp, buf, encrypt_size);        // for padding
 	aes_decrypt(p_temp, p_decrypt, encrypt_size);   // for padding
 
-	printf("received key : %s \n", buf);
+	
+	printf("received key :");
+	for (i=0;i<sizeof(buf);i++){
+		printf("0x%02x ", buf[i]);
+			
+	}
+	printf("\n\n");
 
-	int i;
+
 	printf("decrypted : ");
 	for ( i = 0; i < sizeof(buf); i++){
 		printf( "0x%02x ", p_decrypt[i]);

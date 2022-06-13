@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 	U8 p_temp[1024];
 	int encrypt_size;
 
-	aes_encrypt(key[0], p_encrypt, sizeof(key[0]));   // (plaintext, encrypted text array, text size)
+	aes_encrypt(key[0], p_encrypt, sizeof(key[0])); // (plaintext, encrypted, size)
 	encrypt_size = (sizeof(key[0]) + AES_BLOCK_SIZE) /16 * 16;
   
 	// Decrypt
@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 	aes_decrypt(p_temp, p_decrypt, encrypt_size);   // decrypt
 
 	int i;
-	printf("client key data(hex) : ");
+	printf("client key(hex) : ");
 	for (i=0; i<sizeof(key[0]); i++){
 		printf("0x%02x ", key[0][i]);
 	}
