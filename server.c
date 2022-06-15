@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <openssl/aes.h>
-//#include <openssl/des.h>
 #include "aes_cbc.h"
 #include <fcntl.h>
 #include <mqueue.h>
@@ -10,13 +8,14 @@
 #include <time.h>
 #include <stdint.h>
 
+// server.c
 int main(int argc, char *args[])
 {
 
     struct mq_attr attr;
     attr.mq_maxmsg = 10;
     attr.mq_msgsize = 128;
-    U8 buf[128] = {0,};
+    U8 buf[KEYSIZE+MACSIZE] = {};
  
     mqd_t mq; 
  
@@ -33,34 +32,59 @@ int main(int argc, char *args[])
 		exit(-1);
     }
 
+	printf("\nbuffer length : %ld\n", sizeof(buf));
 
-	// Key Decryptio
-	
-	//U8 p_encrypt[1024];         // encrypted text
-	U8 p_decrypt[1024];         // decrypted text
-	U8 p_temp[1024];            // to fill 128 bit
+
+	// Key Decryption
+	U8 p_decrypt[KEYSIZE];		
+	U8 p_temp[1024];	
 	int encrypt_size;
-	int i;
-
-	encrypt_size = (sizeof(buf) + AES_BLOCK_SIZE) / 16 * 16;
-	memcpy(p_temp, buf, encrypt_size);        // for padding
-	aes_decrypt(p_temp, p_decrypt, encrypt_size);   // for padding
-
 	
-	printf("\n[SERVER] received key :");
-	for (i=0;i<KEYSIZE;i++){
-		printf("0x%02x ", buf[i]);
-			
+	U8 r_encrypt[KEYSIZE];
+	for(int i=0; i<KEYSIZE; i++){
+		r_encrypt[i] = buf[i];
 	}
-	printf("\n\n");
 
-
-	printf("[SERVER] decrypted : ");
-	for ( i = 0; i < KEYSIZE; i++){
-		printf( "0x%02x ", p_decrypt[i]);
+	U8 r_mac[MACSIZE];
+	for(int i=KEYSIZE;i<KEYSIZE+MACSIZE;i++){
+		r_mac[i-KEYSIZE] = buf[i];
 	}
-	 printf("\n\n");	 
 
+	//aes_encrypt(cipher_key,p_encrypt,sizeof(cipher_key));
+	encrypt_size = ((sizeof(cipher_key) + AES_BLOCK_SIZE) / AES_BLOCK_SIZE) * AES_BLOCK_SIZE;
+	memcpy(p_temp, r_encrypt, encrypt_size);		
+	aes_decrypt(p_temp, p_decrypt, encrypt_size);
+
+	printf("\n[SERVER] Received AEAD : ");
+	printBytes(buf,sizeof(buf));
+	printf("\n");
+
+	printf("[SERVER] Received Key: ");
+	printBytes(r_encrypt,KEYSIZE);
+	printf("\n");	 
+
+	printf("[SERVER] Received MAC: ");
+	printBytes(r_mac,MACSIZE);
+	printf("\n");	 
+
+	printf("[SERVER] Decrypted Key : ");
+	printBytes(p_decrypt,KEYSIZE);
+	printf("\n");
+	
+
+	// Crate CMAC 
+	U8 server_mac[MACSIZE] = {0}; 
+	size_t mactlen;
+
+	CMAC_CTX *ctx = CMAC_CTX_new();
+	CMAC_Init(ctx, mac_key, MACSIZE, EVP_aes_128_cbc(), NULL);
+	CMAC_Update(ctx, r_encrypt, sizeof(r_encrypt));
+	CMAC_Final(ctx, server_mac, &mactlen);
+	CMAC_CTX_free(ctx);
+	printf("[SERVER] Generated CMAC : ");
+	printBytes(server_mac, mactlen);	
+
+	printf("\n[SERVER CLOSED]\n");
 
 	return 0;
 }
