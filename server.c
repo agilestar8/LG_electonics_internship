@@ -11,6 +11,7 @@
 // server.c
 int main(int argc, char *args[])
 {
+	printf("Run Server\n");
 
     struct mq_attr attr;
     attr.mq_maxmsg = 10;
