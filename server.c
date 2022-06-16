@@ -32,45 +32,45 @@ int main(int argc, char *args[])
 		exit(-1);
     }
 
-	printf("\nbuffer length : %ld\n", sizeof(buf));
-
-
-	// Key Decryption
-	U8 p_decrypt[KEYSIZE];		
-	U8 p_temp[1024];	
-	int encrypt_size;
-	
-	U8 r_encrypt[KEYSIZE];
-	for(int i=0; i<KEYSIZE; i++){
-		r_encrypt[i] = buf[i];
-	}
-
-	U8 r_mac[MACSIZE];
-	for(int i=KEYSIZE;i<KEYSIZE+MACSIZE;i++){
-		r_mac[i-KEYSIZE] = buf[i];
-	}
-
-	//aes_encrypt(cipher_key,p_encrypt,sizeof(cipher_key));
-	encrypt_size = ((sizeof(cipher_key) + AES_BLOCK_SIZE) / AES_BLOCK_SIZE) * AES_BLOCK_SIZE;
-	memcpy(p_temp, r_encrypt, encrypt_size);		
-	aes_decrypt(p_temp, p_decrypt, encrypt_size);
-
-	printf("\n[SERVER] Received AEAD : ");
+	printf("\n[SERVER] Received buffer length : %ld\n", sizeof(buf));
+	printf("[SERVER] Received buffer : \n");
 	printBytes(buf,sizeof(buf));
 	printf("\n");
 
-	printf("[SERVER] Received Key: ");
+
+	// Decryption
+	U8 s_encrypt[KEYSIZE];
+	U8 s_decrypt[KEYSIZE];		
+	U8 temp[1024];	
+	int encrypt_size;	
+
+	// Devide buffer to encrypted_key and CMAC
+	U8 r_encrypt[KEYSIZE+MACSIZE];
+	U8 r_mac[MACSIZE];	
+	for(int i=0; i<KEYSIZE; i++){
+		r_encrypt[i] = buf[i];
+	}
+	for(int i=KEYSIZE;i<KEYSIZE+MACSIZE;i++){
+		r_mac[i-KEYSIZE] = buf[i];
+	}
+	
+	encrypt_size = ((sizeof(r_encrypt) + AES_BLOCK_SIZE) / AES_BLOCK_SIZE) * AES_BLOCK_SIZE;
+	memcpy(temp, r_encrypt, encrypt_size);		
+	aes_decrypt(temp, s_decrypt, encrypt_size);
+
+	printf("[SERVER] Received Key: \n");
 	printBytes(r_encrypt,KEYSIZE);
 	printf("\n");	 
+	printf("[SERVER] Decrypted Key : \n");
+	printBytes(s_decrypt,KEYSIZE-4);
+	printf("\n");	
 
-	printf("[SERVER] Received MAC: ");
-	printBytes(r_mac,MACSIZE);
-	printf("\n");	 
-
-	printf("[SERVER] Decrypted Key : ");
-	printBytes(p_decrypt,KEYSIZE);
+	// Re Encrpyt
+	aes_encrypt(s_decrypt, s_encrypt, sizeof(cipher_key));
+	printf("[SERVER] Re Encrpyt : \n");
+	printBytes(s_encrypt,KEYSIZE);
 	printf("\n");
-	
+
 
 	// Crate CMAC 
 	U8 server_mac[MACSIZE] = {0}; 
@@ -78,11 +78,35 @@ int main(int argc, char *args[])
 
 	CMAC_CTX *ctx = CMAC_CTX_new();
 	CMAC_Init(ctx, mac_key, MACSIZE, EVP_aes_128_cbc(), NULL);
-	CMAC_Update(ctx, r_encrypt, sizeof(r_encrypt));
+	CMAC_Update(ctx, r_encrypt, KEYSIZE);
 	CMAC_Final(ctx, server_mac, &mactlen);
 	CMAC_CTX_free(ctx);
-	printf("[SERVER] Generated CMAC : ");
+
+	printf("[SERVER] CLIENT MAC: \n");
+	printBytes(r_mac,MACSIZE);
+	printf("\n");	 
+
+	printf("[SERVER] SERVER MAC : \n");
 	printBytes(server_mac, mactlen);	
+	printf("\n");
+
+	/*
+	if (strcmp(r_mac,server_mac)==1){
+		printf("MAC Verified\n");
+	}
+	else{
+		printf("MAC don't Verified\n");
+	}*/
+
+
+	FILE* fp = fopen("stored_key.txt", "w");
+	fputs(s_encrypt,fp);
+	if(fp == NULL){
+		printf("\nno file\n");
+		return 0;
+	}
+
+	fclose(fp);
 
 	printf("\n[SERVER CLOSED]\n");
 
