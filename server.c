@@ -58,12 +58,13 @@ int main(int argc, char *args[])
 	encrypt_size = ((sizeof(r_encrypt) + AES_BLOCK_SIZE) / AES_BLOCK_SIZE) * AES_BLOCK_SIZE;
 	memcpy(temp, r_encrypt, encrypt_size);		
 	aes_decrypt(temp, s_decrypt, encrypt_size);
+	int padding_gap = encrypt_size - sizeof(cipher_key);
 
 	printf("[SERVER] Received Key: \n");
 	printBytes(r_encrypt,KEYSIZE);
 	printf("\n");	 
 	printf("[SERVER] Decrypted Key : \n");
-	printBytes(s_decrypt,KEYSIZE-4);
+	printBytes(s_decrypt,KEYSIZE-padding_gap);
 	printf("\n");	
 
 	// Re Encrpyt
@@ -109,7 +110,7 @@ int main(int argc, char *args[])
 
 	fclose(fp);
 
-	printf("\n[SERVER CLOSED]\n");
+	printf("[SERVER CLOSED]\n");
 
 	return 0;
 }

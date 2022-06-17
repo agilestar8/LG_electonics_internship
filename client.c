@@ -12,29 +12,29 @@
 int main(int argc, char **argv)
 {
 	printf("---------------------------------------------------------------------------------------------\n");
-	// Encrypt
+	
 	U8 p_encrypt[KEYSIZE];         
 	U8 p_decrypt[KEYSIZE];         
 	U8 p_temp[1024];
 	int encrypt_size;
 
-	//encrypt_size = ((sizeof(cipher_key) + AES_BLOCK_SIZE) / AES_BLOCK_SIZE) * 16;
-	//aes_encrypt(cipher_key, p_encrypt, encrypt_size);
+	// Encrypt
 	aes_encrypt(cipher_key, p_encrypt, sizeof(cipher_key));
 	
 	// Decrypt
 	encrypt_size = ((sizeof(cipher_key) + AES_BLOCK_SIZE) / AES_BLOCK_SIZE) * AES_BLOCK_SIZE;
 	memcpy(p_temp, p_encrypt, encrypt_size);    
 	aes_decrypt(p_temp, p_decrypt, encrypt_size);   
+	int padding_gap = encrypt_size - sizeof(cipher_key);
 
 	printf("[CLIENT] Cipher KEY(hex) : \n");
-	printBytes(cipher_key, KEYSIZE-4);
+	printBytes(cipher_key, KEYSIZE-padding_gap);
 
 	printf("\n[CLIENT] KEY Encrypt : \n");
 	printBytes(p_encrypt, KEYSIZE);
 
 	printf("\n[CLIENT] KEY Decrypt : \n");
-	printBytes(p_decrypt, KEYSIZE-4);
+	printBytes(p_decrypt, KEYSIZE-padding_gap);
 
 
 	// Crate MAC 
