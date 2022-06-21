@@ -6,6 +6,7 @@
 #include <time.h>
 #include <stdint.h>
 #include <openssl/cmac.h>
+#include <openssl/hmac.h>
 #include <openssl/aes.h>
 #include <openssl/des.h>
 #include <openssl/evp.h>
@@ -77,20 +78,29 @@ int main(int argc, char **argv)
 							 0xCC,0xCC,0xCC,0xCC};
 
 
-	// Mac Key
-	static const U8 mac_key[] = {   0x2b,0x7e,0x15,0x16, 
-									0x28,0xae,0xd2,0xa6,
-									0xab,0xf7,0x15,0x88,
-									0x09,0xcf,0x4f,0x3c};
-	printf("---------------------------------------------------------------------------------------------\n");
+	// CMAC Key
+	static const U8 cmac_key[] = {   0x01,0x02,0x03,0x04, 
+									0xaa,0xbb,0xcc,0xdd,
+									0xaa,0xbb,0xcc,0xdd,
+									0xaa,0xbb,0xcc,0xdd};
+
+	// HMAC Key
+	static const U8 hmac_key[] = {   0x05,0x06,0x07,0x08, 
+									0xaa,0xbb,0xcc,0xdd,
+									0xaa,0xbb,0xcc,0xdd,
+									0xaa,0xbb,0xcc,0xdd};
+
+
+
+	printf("\n---------------------------------------------------------------------------------------------\n");
 
 	// PSS KEY
 	U8 PSS_KEY[PSKSIZE];
 	for(int i=4;i<20;i++){
 		PSS_KEY[i-4] = cipher_key[i];
 	}
-	printBytes(cipher_key, 20);
-	printBytes(PSS_KEY,sizeof(PSS_KEY));
+	//printBytes(cipher_key, 20);
+	//printBytes(PSS_KEY,sizeof(PSS_KEY));
 
 
 	U8 p_encrypt[KEYSIZE];         
@@ -117,17 +127,33 @@ int main(int argc, char **argv)
 	printBytes(p_decrypt, KEYSIZE-padding_gap);
 
 
-	// Crate MAC 
-	U8 mact[MACSIZE] = {0};	// MAC 
-	size_t mactlen;
+	// Create CMAC 
+	U8 cmac[MACSIZE] = {0};	// MAC 
+	size_t clen;
 
 	CMAC_CTX *ctx = CMAC_CTX_new();
-	CMAC_Init(ctx, mac_key, MACSIZE, EVP_aes_128_cbc(), NULL);
+	CMAC_Init(ctx, cmac_key, MACSIZE, EVP_aes_128_cbc(), NULL);
 	CMAC_Update(ctx, p_encrypt, sizeof(p_encrypt));
-	CMAC_Final(ctx, mact, &mactlen);
+	CMAC_Final(ctx, cmac, &clen);
 	printf("\n[CLIENT] Generated CMAC : \n");
-	printBytes(mact, mactlen);
+	printBytes(cmac, clen);
 	CMAC_CTX_free(ctx);
+
+
+	// Create HMAC
+	int hlen = sizeof(hmac_key);
+	//U8 *hmac = (U8*)malloc(sizeof(U8)*len);
+	U8 hmac[1024];
+
+	HMAC_CTX *ctx2 = HMAC_CTX_new();
+	HMAC_CTX_reset(ctx2);
+    HMAC_Init_ex(ctx2, hmac_key, MACSIZE, EVP_sha256(), NULL);
+    HMAC_Update(ctx2, p_encrypt, sizeof(p_encrypt));
+    HMAC_Final(ctx2, hmac, &hlen);
+	printf("\n[CLIENT] HMAC Digest : \n");
+	printBytes(hmac,strlen(hmac));
+	printf("\n");
+	HMAC_CTX_free(ctx2);
 
 
 	// Concat KEY+CMAC
@@ -137,7 +163,7 @@ int main(int argc, char **argv)
 		AEAD[i] = p_encrypt[i];
 	}
 	for(int i=KEYSIZE;i<KEYSIZE+MACSIZE;i++){
-		AEAD[i] = mact[i-KEYSIZE];
+		AEAD[i] = cmac[i-KEYSIZE];
 	}
 
 	printf("\n[CLIENT] AEAD : \n");

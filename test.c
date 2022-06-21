@@ -46,6 +46,18 @@ void printBytes(U8 *arr, size_t len){
 }
 
 
+int ascii_to_hex(char c){
+	int num = (int) c;
+	if(num<58 && num >47){
+		return num-48;
+	}
+	if(num<103 && num>96){
+		return num-87;
+	}
+	return num;
+}
+
+
 int main(){
 	
 	// Cipher Key
@@ -71,42 +83,71 @@ int main(){
 
 
 	// Mac Key
-	static const U8 mac_key[] = {   0x2b,0x7e,0x15,0x16, 
-									0x28,0xae,0xd2,0xa6,
-									0xab,0xf7,0x15,0x88,
-									0x09,0xcf,0x4f,0x3c};
+	static const U8 mac_key[] = {0x2b,0x7e,0x15,0x16, 
+							 	 0x28,0xae,0xd2,0xa6,
+								 0xab,0xf7,0x15,0x88,
+								 0x09,0xcf,0x4f,0x3c};
 
 	U8 PSS_KEY[16];
 	for(int i=4;i<20;i++){
 		PSS_KEY[i-4] = cipher_key[i];
 	}
-	printBytes(cipher_key, 20);
-	printBytes(PSS_KEY,sizeof(PSS_KEY));
+	//printBytes(cipher_key, KEYSIZE);
+	//printBytes(PSS_KEY,sizeof(PSS_KEY));
+	printf("\n");
 
-
-	//int encrypt_size = ((sizeof(cipher_key) + AES_BLOCK_SIZE) / AES_BLOCK_SIZE) * AES_BLOCK_SIZE;
+	int encrypt_size = ((sizeof(cipher_key) + AES_BLOCK_SIZE) / AES_BLOCK_SIZE) * AES_BLOCK_SIZE;
 	U8 p_encrypt[KEYSIZE];         
 	U8 p_decrypt[KEYSIZE];         
 	U8 p_temp[1024];
 
+	// Decrypt
+	memcpy(p_temp, p_encrypt, encrypt_size);    
+	aes_decrypt(p_temp, p_decrypt, encrypt_size, PSS_KEY );   
 
-	// Encrypt by PSS_KEY
 
+	// key save and load
+	
+	FILE *fp = fopen("abc.txt","r");
+	if (fp == NULL){
+		printf("[SERER] don't have key, create key_file :\n");
+		printBytes(p_decrypt, sizeof(p_decrypt));
+		
+		U8 key[KEYSIZE] = {0,};
+		U8 *num;
+
+		FILE *fp = fopen("abc.txt","w");
+		for(int i=0;i<KEYSIZE;i++){
+			num = (U8*)malloc(sizeof(U8) * KEYSIZE);
+			fgets(num,KEYSIZE,fp);
+			key[i] = num;
+			printf("%02hhX ", num);
+		}
+		printf("\n");
+		fclose(fp);
+		return 0;
+			
+	}else{
+		U8 key[KEYSIZE] = {0,};
+		U8 buffer[64] = {0,};	
+		fgets(buffer,sizeof(buffer),fp);
+		
+		printf("\nRead file : \n");
+		for(int i=0;i<sizeof(
+		
+
+	}
+	fclose(fp);
+
+
+	// Encrypt
 	aes_encrypt(cipher_key, p_encrypt, sizeof(cipher_key), PSS_KEY);
 	printBytes(p_encrypt, sizeof(p_encrypt));
 
-	// Encrypt by Cipher_key
 
 
 
-
-
-	/*
-	// Decrypt
-memcpy(p_temp, p_encrypt, encrypt_size);    
-	aes_decrypt(p_temp, p_decrypt, encrypt_size);   
-	int padding_gap = encrypt_size - sizeof(cipher_key);
-	*/
+	
 
 	return 0;
 }
