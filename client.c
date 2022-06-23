@@ -14,9 +14,9 @@
 #define KEYSIZE 64
 #define MACSIZE 16
 #define PSKSIZE 16
+typedef uint8_t U8;
+// Client.c
 
-//typedef uint8_t U8;
-typedef unsigned char U8;
 
 // AES_CBC Encrypt
 int aes_encrypt( U8 *p_in, U8 *p_out, int size, U8 *key)
@@ -53,7 +53,7 @@ void printBytes(U8 *arr, size_t len){
 }
 
 
-// clinet.c
+
 int main(int argc, char **argv)
 {
 	// Cipher Key
@@ -99,9 +99,6 @@ int main(int argc, char **argv)
 	for(int i=4;i<20;i++){
 		PSS_KEY[i-4] = cipher_key[i];
 	}
-	//printBytes(cipher_key, 20);
-	//printBytes(PSS_KEY,sizeof(PSS_KEY));
-
 
 	U8 p_encrypt[KEYSIZE];         
 	U8 p_decrypt[KEYSIZE];         
@@ -109,7 +106,7 @@ int main(int argc, char **argv)
 	int encrypt_size = ((sizeof(cipher_key) + AES_BLOCK_SIZE) / AES_BLOCK_SIZE) * AES_BLOCK_SIZE;
 
 
-	// Encrypt by PSS_KEY
+	// Encrypt
 	aes_encrypt(cipher_key, p_encrypt, sizeof(cipher_key), PSS_KEY);
 
 	// Decrypt
@@ -119,13 +116,12 @@ int main(int argc, char **argv)
 
 	printf("[CLIENT] Cipher KEY(hex) : \n");
 	printBytes(cipher_key, KEYSIZE-padding_gap);
-
+	/*
 	printf("\n[CLIENT] KEY Encrypt : \n");
 	printBytes(p_encrypt, KEYSIZE);
-
 	printf("\n[CLIENT] KEY Decrypt : \n");
 	printBytes(p_decrypt, KEYSIZE-padding_gap);
-
+	*/
 
 	// Create CMAC 
 	U8 cmac[MACSIZE] = {0};	// MAC 
@@ -139,10 +135,8 @@ int main(int argc, char **argv)
 	printBytes(cmac, clen);
 	CMAC_CTX_free(ctx);
 
-
 	// Create HMAC
 	int hlen = sizeof(hmac_key);
-	//U8 *hmac = (U8*)malloc(sizeof(U8)*len);
 	U8 hmac[1024];
 
 	HMAC_CTX *ctx2 = HMAC_CTX_new();
@@ -152,19 +146,20 @@ int main(int argc, char **argv)
     HMAC_Final(ctx2, hmac, &hlen);
 	printf("\n[CLIENT] HMAC Digest : \n");
 	printBytes(hmac,strlen(hmac));
-	printf("\n");
 	HMAC_CTX_free(ctx2);
 
 
 	// Concat KEY+CMAC
+
 	U8 AEAD[KEYSIZE+MACSIZE] = {};
 
 	for(int i=0;i<KEYSIZE;i++){
 		AEAD[i] = p_encrypt[i];
 	}
-	for(int i=KEYSIZE;i<KEYSIZE+MACSIZE;i++){
+	for(int i=KEYSIZE;i<KEYSIZE;i++){
 		AEAD[i] = cmac[i-KEYSIZE];
 	}
+
 
 	printf("\n[CLIENT] AEAD : \n");
 	printBytes(AEAD,KEYSIZE+MACSIZE);
@@ -177,13 +172,13 @@ int main(int argc, char **argv)
     mqd_t mq;
     U8 buf[KEYSIZE+MACSIZE];
 
-    mq = mq_open("/mq_buf", O_WRONLY, 0666, &attr);
+    mq = mq_open("/mq_key", O_WRONLY, 0666, &attr);
     if(mq == -1){
         perror("open error");
         exit(0);
     }
 
-	if((mq_send(mq, AEAD, sizeof(AEAD), 1)) == -1){
+	if((mq_send(mq, p_encrypt, sizeof(p_encrypt), 1)) == -1){
 		perror("MQ_send error");
         exit(-1);
     }

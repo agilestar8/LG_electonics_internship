@@ -9,8 +9,8 @@ typedef unsigned char U8;
 
 int main(){
 	U8 key[10] = {1,2,3,4,5,6,7,8,9,10};
-	U8 data[16] = {1,2,3,4,5,6,7,8,9,10};
-
+//	U8 data[16] = {1,2,3,4,5,6,7,8,9,10};
+	char *data = "hello";
 
 	// HMAC create
 	int len = sizeof(key);

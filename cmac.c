@@ -22,10 +22,13 @@ int main(int argc, char *argv[])
 
 
   // Message : 6b c1 be e2 2e 40 9f 96 e9 3d 7e 11 73 93 17 2a   Mlen: 128
-  U8 authentic_msg[] = { 0x6b,0xc1,0xbe,0xe2, 
+  /*
+	U8 authentic_msg[] = { 0x6b,0xc1,0xbe,0xe2, 
                          0x2e,0x40,0x9f,0x96, 
                          0xe9,0x3d,0x7e,0x11, 
                          0x73,0x93,0x17,0x2a };
+  */
+	U8 authentic_msg[] = "hello"; 
 
 
 

@@ -3,10 +3,11 @@
 #include <string.h>
 #include <fcntl.h>
 #include <mqueue.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <time.h>
 #include <stdint.h>
-#include <openssl/evp.h>
+#include <openssl/hmac.h>
 #include <openssl/aes.h>
 #include <openssl/des.h>
 #include <openssl/cmac.h>
@@ -14,9 +15,10 @@
 #define KEYSIZE 64
 #define MACSIZE 16
 #define PSKSIZE 16
+// SERVER.C
 
-//typedef uint8_t U8;
-typedef unsigned char U8;
+typedef uint8_t U8;
+//typedef unsigned char U8;
 
 
 // AES_CBC Encrypt
@@ -66,72 +68,166 @@ void printBytes(U8 *arr, size_t len){
 	printf("\n");
 }
 
+typedef struct message{
+	int cmd;
+	char buffer[100];
+	int ret;
+}msg;
 
 
-// server.c
+
 int main(int argc, char *args[])
 {
 	printf("\nRun Server\n");
-
-	printf("waiting...\n");
+	printf("waiting data...\n");
 	// Message Queue Setting
     struct mq_attr attr;
     attr.mq_maxmsg = 10;
     attr.mq_msgsize = 128;
     U8 buf[KEYSIZE+MACSIZE] = {};
     mqd_t mq; 
- 
-	// MQ open
-    mq = mq_open("/mq_buf", O_RDWR | O_CREAT, 0666, &attr);
+	msg m;
+
+	/* Receive First Key
+
+	mq = mq_open("/mq_key", O_RDWR | O_CREAT, 0666, &attr);
+    if(mq_receive(mq, buf, attr.mq_msgsize,NULL) == -1){
+		print("error1");	
+	}
+	mq_close(mq);
+	
+	U8 s_encrypt[KEYSIZE]={0,};
+	U8 s_decrypt[KEYSIZE]={0,;		
+	U8 temp[1024]={0,};	
+	int encrypt_size;		
+	*/
+
+
+	// key save and load	
+/* save
+	aes_encrypt(m.buffer, s_encrypt, sizeof(m.buffer), PSS_KEY);
+	encrypt_size = ((sizeof(m.buffer) + AES_BLOCK_SIZE) / AES_BLOCK_SIZE) * AES_BLOCK_SIZE;
+	memcpy(temp, m.buffer, encrypt_size);		
+	aes_decrypt(temp, s_decrypt, encrypt_size, PSS_KEY);
+	
+    int fd;
+	fd = open("file.dlc",O_WRONLY|O_CREAT,0666);
+	write(fd, s_decrypt, KEYSIZE);
+	printf("[SERVER] don't have key, create key file \n");		
+	close(fd);
+
+
+*/	
+	int fd;
+	U8 cipher_key[KEYSIZE]={0,};
+	umask(0);
+
+	fd = open("file.dlc",O_RDONLY,0666);	
+	read(fd, cipher_key, KEYSIZE);
+	printf("[SERVER] Read File.dlc : \n");
+	printBytes(cipher_key,KEYSIZE-4);
+	printf("\n");
+	close(fd);
+
+	U8 s_encrypt[KEYSIZE]={0,};
+	U8 s_decrypt[KEYSIZE]={0,};		
+	U8 temp[1024]={0,};	
+	int encrypt_size;	
+	
+	// Key Setting
+	U8 PSS_KEY[16];
+	U8 cmac_key[16];
+	U8 hmac_key[16];
+
+	// Set PSS KEY
+	for(int i=4;i<20;i++){
+		PSS_KEY[i-4] = cipher_key[i];
+	}
+	printf("[SERVER] PSS KEY : \n");
+	printBytes(PSS_KEY,sizeof(PSS_KEY));
+
+	// Set CMAC Key
+	for(int i=24;i<40;i++){
+		cmac_key[i-24] = cipher_key[i];
+	}
+	printf("[SERVER] CMAC KEY : \n");
+	printBytes(cmac_key, sizeof(cmac_key));
+	// Set HMAC Key	
+	for(int i=44;i<60;i++){
+		hmac_key[i-44] = cipher_key[i];
+	}
+	printf("[SERVER] HMAC KEY : \n");
+	printBytes(hmac_key, sizeof(hmac_key));
+
+
+	// Receive APP's data
+	mq = mq_open("/mq_buf", O_RDWR | O_CREAT, 0666, &attr);
     if (mq == -1){
 		perror("message queue open error");
         exit(1);
      }
-	
-	// MQ receive
-    if(mq_receive(mq, buf, attr.mq_msgsize,NULL) == -1){
-        perror("mq_receive error");
-		exit(-1);
-    }
-
-	printf("\n[SERVER] received MQ!\n");
-
-	
-	// Cipher Key
-	static U8 cipher_key[] = 
-							{0x00,0x01, 
-							 0x00,0x10, 
-							 0xAA,0xAA,0xAA,0xAA,
-							 0xAA,0xAA,0xAA,0xAA,
-							 0xAA,0xAA,0xAA,0xAA,
-							 0xAA,0xAA,0xAA,0xAA,
-							 0x00,0x02,
-							 0x00,0x10,
-							 0xBB,0xBB,0xBB,0xBB,
-							 0xBB,0xBB,0xBB,0xBB,
-							 0xBB,0xBB,0xBB,0xBB,
-							 0xBB,0xBB,0xBB,0xBB,
-							 0x00,0x03,
-							 0x00,0x10,
-							 0xCC,0xCC,0xCC,0xCC,
-							 0xCC,0xCC,0xCC,0xCC,
-							 0xCC,0xCC,0xCC,0xCC,
-							 0xCC,0xCC,0xCC,0xCC};
-	
-
-	// Mac Key
-	static const U8 mac_key[] = {   0x01,0x02,0x03,0x04, 
-									0xaa,0xbb,0xcc,0xdd,
-									0xaa,0xbb,0xcc,0xdd,
-									0xaa,0xbb,0xcc,0xdd};
+	if ((mq_receive(mq, (char *) &m, sizeof(m)+128, NULL)) == -1){
+		printf("error2");
+	}
+	printf("\n[SERVER] received !\n");	
+	printf("[SERVER] cmd : %d\n", m.cmd);
+	printf("[SERVER] text : ");
+	printBytes(m.buffer,strlen(m.buffer));
+	printf("[SERVER] ret : %d\n", m.ret);
+	printf("\n");
 
 
-	// Decryption
-	U8 s_encrypt[KEYSIZE];
-	U8 s_decrypt[KEYSIZE];		
-	U8 temp[1024];	
-	int encrypt_size;	
 
+	// command
+	if (m.cmd == 1){
+		aes_encrypt(m.buffer, s_encrypt, sizeof(m.buffer), PSS_KEY);
+		printf("[SERVER] Encrpyt : ");
+		printBytes(s_encrypt,strlen(s_encrypt));
+		printf("\n");
+	}
+
+	else if(m.cmd == 2){
+		encrypt_size = ((sizeof(m.buffer) + AES_BLOCK_SIZE) / AES_BLOCK_SIZE) * AES_BLOCK_SIZE;
+		memcpy(temp, s_encrypt, encrypt_size);		
+		aes_decrypt(temp, s_decrypt, encrypt_size, PSS_KEY);
+		printf("[SERVER] Decrypt : ");
+		printBytes(s_decrypt,strlen(m.buffer));
+		printf("\n");
+	}
+
+	else if(m.cmd == 3){
+		// Crate CMAC 
+		U8 server_mac[MACSIZE] = {0}; 
+		size_t mactlen;
+
+		CMAC_CTX *ctx = CMAC_CTX_new();
+		CMAC_Init(ctx, cmac_key, MACSIZE, EVP_aes_128_cbc(), NULL);
+		CMAC_Update(ctx, m.buffer, sizeof(m.buffer));
+		CMAC_Final(ctx, server_mac, &mactlen);
+		CMAC_CTX_free(ctx);
+
+		printf("[SERVER] Generated CMAC : \n");
+		printBytes(server_mac, mactlen);	
+		printf("\n");
+
+		}
+
+	else if(m.cmd == 4){
+		// Create HMAC
+		int hlen = sizeof(hmac_key);
+		U8 hmac[1024];
+
+		HMAC_CTX *ctx2 = HMAC_CTX_new();
+		HMAC_CTX_reset(ctx2);
+		HMAC_Init_ex(ctx2, hmac_key, MACSIZE, EVP_sha256(), NULL);
+		HMAC_Update(ctx2, m.buffer, sizeof(m.buffer));
+		HMAC_Final(ctx2, hmac, &hlen);
+		printf("[SERVER] HMAC Digest : \n");
+		printBytes(hmac,strlen(hmac));
+		HMAC_CTX_free(ctx2);
+	}
+
+	/*
 	// Divide buffer to encrypted_key   CMAC
 	U8 r_encrypt[KEYSIZE+MACSIZE];
 	U8 r_mac[MACSIZE];	
@@ -141,90 +237,11 @@ int main(int argc, char *args[])
 	for(int i=KEYSIZE;i<KEYSIZE+MACSIZE;i++){
 		r_mac[i-KEYSIZE] = buf[i];
 	}
-
-	// Set PSS KEY
-	U8 PSS_KEY[PSKSIZE];
-	for(int i=4;i<20;i++){
-		PSS_KEY[i-4] = cipher_key[i];
-	}
-	printf("\n[SERVER] PSS KEY : \n");
-	//printBytes(cipher_key, 20);
-	printBytes(PSS_KEY,sizeof(PSS_KEY));
-
-	encrypt_size = ((sizeof(r_encrypt) + AES_BLOCK_SIZE) / AES_BLOCK_SIZE) * AES_BLOCK_SIZE;
-	memcpy(temp, r_encrypt, encrypt_size);		
-	aes_decrypt(temp, s_decrypt, encrypt_size, PSS_KEY);
-
-/*
-	U8 cipher_key[KEYSIZE] = {0,};
-
-	FILE *file;
-	file = fopen("cipher_key.txt", 'r');
-	if (file == NULL){
-		memcpy(cipher_key, s_decrypt, sizeof(buf));
-		printf("Cipher_Key setting Complete!\n");
-		printBytes(cipher_key, KEYSIZE);
-	}
-	else{
-		for(int i=0;i<KEYSIZE;i++){
-		read_key = (U8*)malloc(sizeof(U8)*KEYSIZE);
-		fgets(read_key,KEYSIZE,file);
-		memcpy(cipher_key, 
-		}
-	}
-*/
-
-	
-
-	printf("\n[SERVER] Received buffer length : %ld\n", sizeof(buf));
-	printf("[SERVER] Received buffer : \n");
-	printBytes(buf,sizeof(buf));
-	printf("\n");
-	printf("[SERVER] Received Key: \n");
-	printBytes(r_encrypt,KEYSIZE);
-	printf("\n");	 
-	printf("[SERVER] Decrypted Key : \n");
-	printBytes(s_decrypt,sizeof(cipher_key));
-	printf("\n");	
-
-	// Re_Encrpyt by Cipher_key
-	aes_encrypt(s_decrypt, s_encrypt, sizeof(s_decrypt), PSS_KEY);
-	printf("[SERVER] Re Encrpyt : \n");
-	printBytes(s_encrypt,KEYSIZE);
-	printf("\n");
+	*/
 
 
-	// Crate CMAC 
-	U8 server_mac[MACSIZE] = {0}; 
-	size_t mactlen;
-
-	CMAC_CTX *ctx = CMAC_CTX_new();
-	CMAC_Init(ctx, mac_key, MACSIZE, EVP_aes_128_cbc(), NULL);
-	CMAC_Update(ctx, r_encrypt, KEYSIZE);
-	CMAC_Final(ctx, server_mac, &mactlen);
-	CMAC_CTX_free(ctx);
-
-	printf("[SERVER] CLIENT MAC: \n");
-	printBytes(r_mac,MACSIZE);
-	printf("\n");	 
-
-	printf("[SERVER] SERVER MAC : \n");
-	printBytes(server_mac, mactlen);	
-	printf("\n");
-
-	verify_mac(r_mac, server_mac);
-
-/*
-	FILE* fp = fopen("cipher_key.txt", "w");
-	fputs(s_encrypt,fp);
-	if(fp == NULL){
-		printf("\nno file\n");
-		return 0;
-	}
-	fclose(fp);
-*/
-
+	mq_close(mq);
 	printf("[SERVER CLOSED]\n");
-
 	return 0;
 }
+

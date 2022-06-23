@@ -1,16 +1,23 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<fcntl.h>
+#include<mqueue.h>
 #include<openssl/aes.h>
 #include<openssl/des.h>
 #include<openssl/cmac.h>
+#include<errno.h>
 #define KEY_BIT 128
 #define KEYSIZE 64
 #define MACSIZE 16
+// TEST.c
 
-//typedef uint8_t U8;
-typedef unsigned char U8;
-
+typedef uint8_t U8;
+//typedef unsigned char U8;
+#define ENC_ERR_NONE 0
+#define ENC_ERR_FAIL 1
 // AES_CBC Encrypt
 int aes_encrypt( U8 *p_in, U8 *p_out, int size, U8 *key)
 {
@@ -18,7 +25,11 @@ int aes_encrypt( U8 *p_in, U8 *p_out, int size, U8 *key)
 	U8 iv_aes[AES_BLOCK_SIZE];      // initialize vectore
 	bzero(iv_aes, sizeof(iv_aes));  // insert 0 to iv_array
  
-    AES_set_encrypt_key(key, KEY_BIT, &aes_key);                  // set cipher key
+    int ret=0;
+	ret = AES_set_encrypt_key(key, KEY_BIT, &aes_key);                  // set cipher key
+	if(ret){
+		return ENC_ERR_FAIL;
+	}
 	AES_cbc_encrypt( p_in, p_out, size, &aes_key , iv_aes, AES_ENCRYPT); // encrypting
 
 	return 0;
@@ -45,21 +56,50 @@ void printBytes(U8 *arr, size_t len){
 	printf("\n");
 }
 
-
-int ascii_to_hex(char c){
-	int num = (int) c;
-	if(num<58 && num >47){
-		return num-48;
-	}
-	if(num<103 && num>96){
-		return num-87;
-	}
-	return num;
-}
-
+typedef struct message{
+	int cmd;
+	char buffer[80];
+	int ret;
+}msg;
 
 int main(){
 	
+	struct mq_attr attr;
+	attr.mq_maxmsg = 10;
+	attr.mq_msgsize = 128;
+	mqd_t mq;
+
+	msg m;
+	m.cmd = 1;
+	strcpy(m.buffer, "Hello");
+	m.ret = 0;
+
+	printf("[TEST] m %d\n", m.cmd);
+	printf("[TEST] %s\n", m.buffer);
+	printf("[TEST] %d\n", m.ret);
+	
+	mq = mq_open("/mq_buf", O_RDWR|O_CREAT, 0666, &attr);
+	if (mq == -1){
+		perror("[TEST] send error");
+		return 0;
+	}
+	mq_send(mq, (const char *) &m, sizeof(m)+1,1);
+
+
+	msg m2;
+	if(mq_receive(mq, (char *) &m2, sizeof(m2)+128, NULL) == -1){
+		perror("[TEST] receive error : ");
+	}
+	mq_close(mq);
+	
+	printf("[TEST] m2 %d\n", m2.cmd);
+	printf("[TEST] %s\n", m2.buffer);
+	printf("[TEST] %d\n", m2.ret);
+	
+
+
+
+/*
 	// Cipher Key
 	static U8 cipher_key[] = 
 							{0x00,0x01, 
@@ -88,6 +128,7 @@ int main(){
 								 0xab,0xf7,0x15,0x88,
 								 0x09,0xcf,0x4f,0x3c};
 
+	
 	U8 PSS_KEY[16];
 	for(int i=4;i<20;i++){
 		PSS_KEY[i-4] = cipher_key[i];
@@ -97,52 +138,48 @@ int main(){
 	printf("\n");
 
 	int encrypt_size = ((sizeof(cipher_key) + AES_BLOCK_SIZE) / AES_BLOCK_SIZE) * AES_BLOCK_SIZE;
-	U8 p_encrypt[KEYSIZE];         
+
+
+	U8 p_encrypt[KEYSIZE] = {0,};         
 	U8 p_decrypt[KEYSIZE];         
 	U8 p_temp[1024];
+
+	// Encrypt
+	aes_encrypt(cipher_key, p_encrypt, sizeof(cipher_key), PSS_KEY);
 
 	// Decrypt
 	memcpy(p_temp, p_encrypt, encrypt_size);    
 	aes_decrypt(p_temp, p_decrypt, encrypt_size, PSS_KEY );   
 
 
-	// key save and load
-	
-	FILE *fp = fopen("abc.txt","r");
-	if (fp == NULL){
-		printf("[SERER] don't have key, create key_file :\n");
-		printBytes(p_decrypt, sizeof(p_decrypt));
-		
-		U8 key[KEYSIZE] = {0,};
-		U8 *num;
+	// key save and load	
+	int fd;
+	U8 key_buf[KEYSIZE]={0,};
+	umask(0);
 
-		FILE *fp = fopen("abc.txt","w");
-		for(int i=0;i<KEYSIZE;i++){
-			num = (U8*)malloc(sizeof(U8) * KEYSIZE);
-			fgets(num,KEYSIZE,fp);
-			key[i] = num;
-			printf("%02hhX ", num);
-		}
-		printf("\n");
-		fclose(fp);
+	if (open("file.dlc",O_RDONLY,0666)== -1){
+		
+		fd = open("file.dlc",O_WRONLY,0666);
+		write(fd, p_decrypt, KEYSIZE);
+		printf("[SERVER] don't have key, create key file :\n");	
+		close(fd);
 		return 0;
-			
-	}else{
-		U8 key[KEYSIZE] = {0,};
-		U8 buffer[64] = {0,};	
-		fgets(buffer,sizeof(buffer),fp);
-		
-		printf("\nRead file : \n");
-		for(int i=0;i<sizeof(
-		
-
 	}
-	fclose(fp);
+
+	fd = open("file.dlc",O_RDONLY,0666);	
+	read(fd,key_buf,KEYSIZE);
+	for(int i=0;i<KEYSIZE;i++)
+		printf("%02x ",key_buf[i]);
+//	printBytes(key_buf,KEYSIZE);
+	printf("\n");
+	close(fd);
+
+*/
 
 
-	// Encrypt
-	aes_encrypt(cipher_key, p_encrypt, sizeof(cipher_key), PSS_KEY);
-	printBytes(p_encrypt, sizeof(p_encrypt));
+
+
+//	printBytes(p_encrypt, sizeof(p_encrypt));
 
 
 
