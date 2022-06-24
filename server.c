@@ -160,6 +160,8 @@ int main(int argc, char *args[])
 	printBytes(hmac_key, sizeof(hmac_key));
 
 
+	while (1){
+
 	// Receive APP's data
 	mq = mq_open("/mq_buf", O_RDWR | O_CREAT, 0666, &attr);
     if (mq == -1){
@@ -171,8 +173,7 @@ int main(int argc, char *args[])
 	}
 	printf("\n[SERVER] received !\n");	
 	printf("[SERVER] cmd : %d\n", m.cmd);
-	printf("[SERVER] text : ");
-	printBytes(m.buffer,strlen(m.buffer));
+	printf("[SERVER] text : %s\n", m.buffer);
 	printf("[SERVER] ret : %d\n", m.ret);
 	printf("\n");
 
@@ -226,6 +227,9 @@ int main(int argc, char *args[])
 		printBytes(hmac,strlen(hmac));
 		HMAC_CTX_free(ctx2);
 	}
+	
+	mq_close(mq);
+	}
 
 	/*
 	// Divide buffer to encrypted_key   CMAC
@@ -238,10 +242,8 @@ int main(int argc, char *args[])
 		r_mac[i-KEYSIZE] = buf[i];
 	}
 	*/
-
-
-	mq_close(mq);
-	printf("[SERVER CLOSED]\n");
+	
+	
 	return 0;
 }
 
