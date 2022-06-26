@@ -11,6 +11,37 @@
 typedef uint8_t U8;
 // APP.c
 
+// AES_CBC Encrypt
+int aes_encrypt( U8 *p_in, U8 *p_out, int size, U8 *key)
+{
+	AES_KEY aes_key;            // aes_key structure 
+	U8 iv_aes[AES_BLOCK_SIZE];      // initialize vectore
+	bzero(iv_aes, sizeof(iv_aes));  // insert 0 to iv_array
+    AES_set_encrypt_key(key, KEY_BIT, &aes_key);                  // set cipher key
+	AES_cbc_encrypt( p_in, p_out, size, &aes_key , iv_aes, AES_ENCRYPT); // encrypting
+
+	return 0;
+}
+
+// AES_CBC Decrypt
+int aes_decrypt( U8 *p_in, U8 *p_out, int size, U8 *key)
+{
+	AES_KEY dec_key;
+	U8 iv_aes[AES_BLOCK_SIZE];
+	bzero(iv_aes, sizeof(iv_aes));
+	AES_set_decrypt_key(key, KEY_BIT, &dec_key);
+	AES_cbc_encrypt( p_in, p_out, size, &dec_key , iv_aes, AES_DECRYPT);
+
+	return 0;
+}
+
+// Print Array
+void printBytes(U8 *arr, size_t len){
+	for (int i=0;i<len;i++){
+		printf("0x%02x ", arr[i]);
+	}
+	printf("\n");
+}
 typedef struct messeage{
 	int cmd;
 	U8 buffer[80];
@@ -78,8 +109,21 @@ if (argc!=3){
 	mq_close(mq);
 
 	printf(buf);
-*/
 
+
+	// Create HMAC
+	int hlen = sizeof(hmac_key);
+	U8 hmac[1024];
+	HMAC_CTX *ctx2 = HMAC_CTX_new();
+	HMAC_CTX_reset(ctx2);
+	HMAC_Init_ex(ctx2, hmac_key, MACSIZE, EVP_sha256(), NULL);
+	HMAC_Update(ctx2, m.buffer, strlen(m.buffer));
+	HMAC_Final(ctx2, hmac, &hlen);
+	printf("[SERVER] HMAC Digest : \n");
+	printBytes(hmac,strlen(hmac));
+	HMAC_CTX_free(ctx2);
+
+	*/
 
 	return 0;
 }

@@ -17,24 +17,21 @@ int main(){
 	U8 hmac[100];
 
 	HMAC_CTX *ctx2 = HMAC_CTX_new();
-	HMAC_CTX_reset(ctx2);
-
+//	HMAC_CTX_reset(ctx2);
     HMAC_Init_ex(ctx2, key, sizeof(key), EVP_sha256(), NULL);
     HMAC_Update(ctx2, hmac, sizeof(data));
     HMAC_Final(ctx2, hmac, &len);
 
 	printf("key : ");
-	for(int i=0;i<strlen(hmac);i++){
-		printf("%02x ", data[i]);
+	for(int i=0;i<sizeof(key);i++){
+		printf("%02x ", key[i]);
 	}
-	printf("\n %d ", sizeof(data));
 
-
-	printf("HMAC Digest : \n");
+	printf("\nHMAC Digest : \n");
 	for(int i=0;i<strlen(hmac);i++){
 		printf("%02x ", hmac[i]);
 	}
-	printf("\n %d", strlen(hmac));
+	printf("\n %d\n", strlen(hmac));
 
 	HMAC_CTX_free(ctx2);
 
