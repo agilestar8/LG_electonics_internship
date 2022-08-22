@@ -4,6 +4,7 @@
 #include<fcntl.h>
 #include<mqueue.h>
 #include<stdint.h>
+#include<openssl/aes.h>
 #define KEY_BIT 128
 #define KEYSIZE 64
 #define MACSIZE 16
@@ -97,7 +98,7 @@ if (argc!=3){
 
 	/* 서버에서 결과 보내준 거 받기
 	// MQ receive
-	mq = mq_open("/receive", O_RDWR | O_CREAT, 0666, &attr);
+	mq = mq_open("/app", O_RDWR | O_CREAT, 0666, &attr);
     if (mq == -1){
 		perror("message queue open error");
         exit(1);
@@ -107,6 +108,10 @@ if (argc!=3){
 		exit(-1);
     }
 	mq_close(mq);
+	
+
+	aes_encrypt();
+
 
 	printf(buf);
 

@@ -18,8 +18,6 @@
 // SERVER.C
 
 typedef uint8_t U8;
-//typedef unsigned char U8;
-
 
 // AES_CBC Encrypt
 int aes_encrypt( U8 *p_in, U8 *p_out, int size, U8 *key)
@@ -88,21 +86,49 @@ int main(int argc, char *args[])
     mqd_t mq; 
 	msg m;
 
-	/* Receive First Key
 
-	buf 
-	mq = mq_open("/mq_key", O_RDWR | O_CREAT, 0666, &attr);
-    if(mq_receive(mq, buf, attr.mq_msgsize,NULL) == -1){
-		print("error1");	
+/*
+	// Read File
+	int fd;
+	U8 cipher_key[KEYSIZE]={0,};
+	umask(0);
+
+	fd = open("file.dlc",O_RDONLY,0666);	
+	if (fd == 0){
+
+		int encrypt_size = ((strlen(key_buf) + AES_BLOCK_SIZE) / AES_BLOCK_SIZE) * AES_BLOCK_SIZE;
+		memcpy(temp, key_buf, encrypt_size);		
+		aes_decrypt(temp, k_decrypt, encrypt_size, PSS_KEY);
+		
+		read(fd, cipher_key, KEYSIZE);
+
+		U8 k_decrypt[KEYSIZE]={0,};		
+		U8 temp[1024]={0,};	
+		int encrypt_size;		
+		
+	
+		printf("[SERVER] Read Decrypted File.dlc : \n");
+		printBytes(cipher_key,KEYSIZE-4);
+		printf("\n");
+	}
+	close(fd);
+
+
+
+	// Receive First Key
+	if open("file.dlc", O_RDONLY);
+
+	U8 key_Buf[KEYSIZE];
+	mq = mq_open("/mq_key", O_RDONLY, 0666, &attr);
+    if (mq == 0)
+
+	if(mq_receive(mq, key_buf, attr.mq_msgsize,NULL) == -1){
+		print("[SERVER] Key Receive Error");	
 	}
 	mq_close(mq);
 	
-	U8 s_encrypt[KEYSIZE]={0,};
-	U8 s_decrypt[KEYSIZE]={0,;		
-	U8 temp[1024]={0,};	
-	int encrypt_size;		
-	*/
 
+*/
 
 	// load	
 /*
@@ -271,18 +297,6 @@ int main(int argc, char *args[])
 
 	mq_close(mq);
 	}
-
-	/*
-	// Divide buffer to encrypted_key   CMAC
-	U8 r_encrypt[KEYSIZE+MACSIZE];
-	U8 r_mac[MACSIZE];	
-	for(int i=0; i<KEYSIZE; i++){
-		r_encrypt[i] = buf[i];
-	}
-	for(int i=KEYSIZE;i<KEYSIZE+MACSIZE;i++){
-		r_mac[i-KEYSIZE] = buf[i];
-	}
-	*/
 	
 	
 	return 0;

@@ -54,7 +54,7 @@ void printBytes(U8 *arr, size_t len){
 
 int main(int argc, char **argv)
 {
-	// Cipher Key
+	// master_ Key
 	static U8 cipher_key[] = 
 							{0x00,0x01, 
 							 0x00,0x10, 
@@ -76,27 +76,33 @@ int main(int argc, char **argv)
 							 0xCC,0xCC,0xCC,0xCC};
 
 
-	// CMAC Key
-	static const U8 cmac_key[] = {   0x01,0x02,0x03,0x04, 
-									0xaa,0xbb,0xcc,0xdd,
-									0xaa,0xbb,0xcc,0xdd,
-									0xaa,0xbb,0xcc,0xdd};
-
-	// HMAC Key
-	static const U8 hmac_key[] = {   0x05,0x06,0x07,0x08, 
-									0xaa,0xbb,0xcc,0xdd,
-									0xaa,0xbb,0xcc,0xdd,
-									0xaa,0xbb,0xcc,0xdd};
-
-
-
 	printf("\n---------------------------------------------------------------------------------------------\n");
+	// Key Setting
+	U8 PSS_KEY[16];
+	U8 cmac_key[16];
+	U8 hmac_key[16];
 
-	// PSS KEY
-	U8 PSS_KEY[PSKSIZE];
+	// Set PSS KEY
 	for(int i=4;i<20;i++){
 		PSS_KEY[i-4] = cipher_key[i];
 	}
+	printf("[SERVER] PSS KEY : \n");
+	printBytes(PSS_KEY,sizeof(PSS_KEY));
+
+	// Set CMAC Key
+	for(int i=24;i<40;i++){
+		cmac_key[i-24] = cipher_key[i];
+	}
+	printf("[SERVER] CMAC KEY : \n");
+	printBytes(cmac_key, sizeof(cmac_key));
+
+	// Set HMAC Key	
+	for(int i=44;i<60;i++){
+		hmac_key[i-44] = cipher_key[i];
+	}
+	printf("[SERVER] HMAC KEY : \n");
+	printBytes(hmac_key, sizeof(hmac_key));
+
 
 	U8 p_encrypt[KEYSIZE];         
 	U8 p_decrypt[KEYSIZE];         
